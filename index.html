@@ -3,76 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Substation Interlock Simulator</title>
+    <title>Advanced Substation Simulator - Siemens Energy</title>
+    
+    <!-- Google Sign-In -->
+    <meta name="google-signin-client_id" content="774320496571-331fo6a5ivi1daoqbrskrflhkr7205rr.apps.googleusercontent.com">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- TensorFlow.js for ML -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }
         
-        /* Dark mode styles */
-        body.dark {
-            background-color: #1a1a1a;
-            color: #e0e0e0;
+        /* Siemens Energy brand colors */
+        :root {
+            --siemens-teal: #00a695;
+            --siemens-purple: #6e3e98;
+            --siemens-dark: #001e2b;
+            --siemens-light: #f0f8f7;
         }
-        .dark .bg-white { background-color: #2a2a2a; }
-        .dark .bg-gray-100 { background-color: #1a1a1a; }
-        .dark .text-gray-900 { color: #e0e0e0; }
-        .dark .text-gray-800 { color: #d0d0d0; }
-        .dark .text-gray-700 { color: #b0b0b0; }
-        .dark .text-gray-600 { color: #a0a0a0; }
-        .dark .border-gray-300 { border-color: #4a4a4a; }
-        .dark .label { fill: #d0d0d0; }
         
-        /* Switch animations */
+        .siemens-gradient {
+            background: linear-gradient(135deg, var(--siemens-teal), var(--siemens-purple));
+        }
+        
+        /* Switch animations with voltage-based colors */
         .switch {
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            transform-origin: center;
         }
-        .switch:hover {
-            transform: scale(1.1);
-        }
-        .switch.animating {
-            animation: switchPulse 0.5s ease-out;
-        }
-        @keyframes switchPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-        
-        /* Switch states */
+        .switch:hover { transform: scale(1.1); }
         .switch.closed .switch-line { fill: #10B981; stroke: #10B981; }
         .switch.open .switch-line { fill: #EF4444; stroke: #EF4444; }
         .switch.earthed .switch-line { fill: #F59E0B; stroke: #F59E0B; }
-        .switch-rect { 
-            transition: all 0.3s ease;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-        }
+        .switch-rect { transition: all 0.3s ease; }
         .switch.closed .switch-rect { stroke: #10B981; fill: #10B98120; }
         .switch.open .switch-rect { stroke: #EF4444; fill: #EF444420; }
         .switch.earthed .switch-rect { stroke: #F59E0B; fill: #F59E0B20; }
         
-        /* Power flow animation */
-        @keyframes powerFlow {
-            0% { stroke-dashoffset: 20; }
-            100% { stroke-dashoffset: 0; }
-        }
-        .power-flow {
-            stroke: #10B981;
-            stroke-width: 2;
-            stroke-dasharray: 5, 15;
-            animation: powerFlow 1s linear infinite;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .power-flow.active {
-            opacity: 0.7;
-        }
+        /* Voltage level indicators */
+        .voltage-220kv { stroke: #DC2626; stroke-width: 10; }
+        .voltage-66kv { stroke: #F59E0B; stroke-width: 8; }
+        .voltage-33kv { stroke: #10B981; stroke-width: 6; }
+        .voltage-11kv { stroke: #3B82F6; stroke-width: 4; }
         
         /* Busbar styles */
         .busbar {
@@ -82,526 +66,1118 @@
             transition: all 0.3s;
         }
         .busbar.energized {
-            stroke: #10B981;
-            fill: #10B981;
             filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
         }
         
-        /* Line styles */
-        .line {
-            stroke: #6B7280;
-            stroke-width: 3;
-            fill: none;
+        /* Profile image styles */
+        .profile-img-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+        }
+        .profile-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--siemens-teal);
+        }
+        .profile-edit-btn {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: var(--siemens-purple);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
             transition: all 0.3s;
         }
-        .line.energized {
-            stroke: #10B981;
-            filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.3));
+        .profile-edit-btn:hover {
+            transform: scale(1.1);
+            background: var(--siemens-teal);
         }
         
-        /* Label styles */
-        .label {
-            font-size: 14px;
-            font-weight: 500;
-            fill: #374151;
-            text-anchor: middle;
-            pointer-events: none;
-        }
-        
-        /* Tooltip styles */
-        .tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s;
-            max-width: 250px;
-        }
-        .tooltip.show {
-            opacity: 1;
-        }
-        
-        /* Status dot */
-        .status-dot {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        /* Tutorial highlight */
-        .tutorial-highlight {
-            animation: highlightPulse 1.5s infinite;
-        }
-        @keyframes highlightPulse {
-            0%, 100% { 
-                filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.8));
-                transform: scale(1.05);
-            }
-            50% { 
-                filter: drop-shadow(0 0 20px rgba(59, 130, 246, 1));
-                transform: scale(1.1);
-            }
-        }
-        
-        /* Transformer symbol */
-        .transformer {
-            stroke: #6B7280;
-            stroke-width: 2;
-            fill: none;
-        }
-        
-        /* Progress bar */
-        .progress-bar {
-            height: 4px;
-            background: #e5e7eb;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3B82F6, #10B981);
-            transition: width 0.5s ease;
-        }
-        
-        /* Custom scrollbar for dark mode */
-        .dark ::-webkit-scrollbar {
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
-        .dark ::-webkit-scrollbar-track {
-            background: #2a2a2a;
-        }
-        .dark ::-webkit-scrollbar-thumb {
-            background: #4a4a4a;
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
             border-radius: 4px;
         }
-        .dark ::-webkit-scrollbar-thumb:hover {
-            background: #5a5a5a;
+        ::-webkit-scrollbar-thumb {
+            background: var(--siemens-teal);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--siemens-purple);
+        }
+        
+        /* Achievement badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 2px;
+        }
+        .badge-gold { background: linear-gradient(135deg, #FFD700, #FFA500); color: white; }
+        .badge-silver { background: linear-gradient(135deg, #C0C0C0, #808080); color: white; }
+        .badge-bronze { background: linear-gradient(135deg, #CD7F32, #8B4513); color: white; }
+        
+        /* Loading animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--siemens-teal);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Tab styling */
+        .tab-active {
+            background: var(--siemens-teal) !important;
+            color: white !important;
+        }
+        
+        /* Modal backdrop */
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 transition-colors duration-300">
-    <!-- Tooltip -->
-    <div id="tooltip" class="tooltip"></div>
+<body class="bg-gray-50">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-teal-500 to-purple-600 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold mb-2">
+                    <span style="color: var(--siemens-teal)">SIEMENS</span>
+                    <span style="color: var(--siemens-purple)">energy</span>
+                </h1>
+                <h2 class="text-2xl font-semibold text-gray-800 mt-4">Substation Simulator</h2>
+                <p class="text-gray-600 mt-2">Advanced Training System</p>
+            </div>
+            
+            <div id="googleSignInDiv"></div>
+            
+            <div class="mt-6 text-center">
+                <button id="guestMode" class="text-gray-500 hover:text-gray-700 underline text-sm">
+                    Continue as Guest (Limited Features)
+                </button>
+            </div>
+            
+            <div class="mt-8 text-xs text-center text-gray-500">
+                Sign in to unlock all features, save progress, and earn certifications
+            </div>
+        </div>
+    </div>
 
-    <div class="container mx-auto p-4 md:p-8">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Advanced Substation Simulator</h1>
-            <p class="mt-2 text-lg text-gray-600">Master Interlocking Systems with Interactive Training</p>
-            <div class="mt-4 flex justify-center gap-4">
-                <button id="darkModeToggle" class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition">
-                    <span id="darkModeIcon">🌙</span> <span id="darkModeText">Dark Mode</span>
+    <!-- User Profile Modal -->
+    <div id="profileModal" class="fixed inset-0 modal-backdrop hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">User Profile</h2>
+                <button id="closeProfileModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Left Column - Profile Info -->
+                <div>
+                    <div class="profile-img-container mb-4">
+                        <img id="profileImage" src="https://via.placeholder.com/150" alt="Profile" class="profile-img">
+                        <label for="profileImageInput" class="profile-edit-btn">
+                            <span>📷</span>
+                        </label>
+                        <input type="file" id="profileImageInput" accept="image/*" class="hidden">
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <input type="text" id="profileName" class="w-full p-2 border rounded-lg" placeholder="Enter your name">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                            <input type="text" id="profileTitle" class="w-full p-2 border rounded-lg" placeholder="e.g., Electrical Engineer">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                            <select id="profileDepartment" class="w-full p-2 border rounded-lg">
+                                <option value="">Select Department</option>
+                                <option value="operations">Operations</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="engineering">Engineering</option>
+                                <option value="safety">Safety</option>
+                                <option value="training">Training</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
+                            <select id="profileExperience" class="w-full p-2 border rounded-lg">
+                                <option value="beginner">Beginner (0-2 years)</option>
+                                <option value="intermediate">Intermediate (2-5 years)</option>
+                                <option value="advanced">Advanced (5-10 years)</option>
+                                <option value="expert">Expert (10+ years)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column - Achievements & Stats -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">Achievements</h3>
+                    <div id="achievementsList" class="mb-4">
+                        <span class="badge badge-gold">🏆 Safety First</span>
+                        <span class="badge badge-silver">⚡ Quick Learner</span>
+                        <span class="badge badge-bronze">🎯 100 Operations</span>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold mb-3">Statistics</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span>Total Training Hours:</span>
+                            <span id="totalHours" class="font-bold">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Scenarios Completed:</span>
+                            <span id="scenariosCompleted" class="font-bold">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Success Rate:</span>
+                            <span id="profileSuccessRate" class="font-bold">0%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>ML Model Accuracy:</span>
+                            <span id="mlAccuracy" class="font-bold">0%</span>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold mt-4 mb-3">Certifications</h3>
+                    <div id="certificationsList" class="space-y-2">
+                        <div class="p-2 bg-green-50 rounded-lg text-sm">
+                            <div class="font-semibold">Basic Safety Operations</div>
+                            <div class="text-xs text-gray-600">Completed: N/A</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex gap-3">
+                <button id="saveProfile" class="flex-1 bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-teal-700 transition">
+                    Save Profile
                 </button>
-                <button id="soundToggle" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                    <span id="soundIcon">🔊</span> Sound: <span id="soundStatus">ON</span>
+                <button id="exportProfile" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-purple-700 transition">
+                    Export Data
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Electrical Settings Modal -->
+    <div id="electricalModal" class="fixed inset-0 modal-backdrop hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Electrical System Configuration</h2>
+                <button id="closeElectricalModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Voltage Levels -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">Voltage Levels</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Primary Voltage (kV)</label>
+                            <select id="primaryVoltage" class="w-full p-2 border rounded-lg">
+                                <option value="220">220 kV</option>
+                                <option value="132">132 kV</option>
+                                <option value="110">110 kV</option>
+                                <option value="400">400 kV</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Secondary Voltage (kV)</label>
+                            <select id="secondaryVoltage" class="w-full p-2 border rounded-lg">
+                                <option value="66">66 kV</option>
+                                <option value="33">33 kV</option>
+                                <option value="11">11 kV</option>
+                                <option value="22">22 kV</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Frequency (Hz)</label>
+                            <select id="systemFrequency" class="w-full p-2 border rounded-lg">
+                                <option value="50">50 Hz (Europe/Asia)</option>
+                                <option value="60">60 Hz (Americas)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold mt-6 mb-3">Protection Settings</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Overcurrent Protection (A)</label>
+                            <input type="number" id="overcurrentLimit" class="w-full p-2 border rounded-lg" value="1000">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Earth Fault Protection (A)</label>
+                            <input type="number" id="earthFaultLimit" class="w-full p-2 border rounded-lg" value="100">
+                        </div>
+                        
+                        <div>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="autoRecloser" class="mr-2">
+                                <span class="text-sm">Enable Auto-Recloser</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Equipment Configuration -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">Equipment Configuration</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Transformer Rating (MVA)</label>
+                            <input type="number" id="transformerRating" class="w-full p-2 border rounded-lg" value="100">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Transformer Type</label>
+                            <select id="transformerType" class="w-full p-2 border rounded-lg">
+                                <option value="oil">Oil-immersed</option>
+                                <option value="dry">Dry-type</option>
+                                <option value="gas">Gas-insulated</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cooling Method</label>
+                            <select id="coolingMethod" class="w-full p-2 border rounded-lg">
+                                <option value="ONAN">ONAN</option>
+                                <option value="ONAF">ONAF</option>
+                                <option value="OFAF">OFAF</option>
+                                <option value="OFWF">OFWF</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Busbar Configuration</label>
+                            <select id="busbarConfig" class="w-full p-2 border rounded-lg">
+                                <option value="single">Single Busbar</option>
+                                <option value="double">Double Busbar</option>
+                                <option value="one-half">One and Half Breaker</option>
+                                <option value="ring">Ring Main</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold mt-6 mb-3">Interlocking Rules</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="rule1" class="mr-2" checked>
+                            <span class="text-sm">Prevent closing breaker without isolator</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="rule2" class="mr-2" checked>
+                            <span class="text-sm">Enforce earthing before maintenance</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="rule3" class="mr-2" checked>
+                            <span class="text-sm">Bus transfer interlock</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="rule4" class="mr-2">
+                            <span class="text-sm">Advanced synchro-check</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-yellow-50 rounded-lg">
+                <p class="text-sm text-yellow-800">
+                    <strong>Note:</strong> Changes to electrical configuration will affect simulation behavior and interlocking logic. 
+                    Ensure settings match your training requirements.
+                </p>
+            </div>
+            
+            <div class="mt-6 flex gap-3">
+                <button id="saveElectrical" class="flex-1 bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-teal-700 transition">
+                    Apply Configuration
+                </button>
+                <button id="loadPreset" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-purple-700 transition">
+                    Load Preset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="container mx-auto px-4 py-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <h1 class="text-2xl font-bold">
+                            <span style="color: var(--siemens-teal)">SIEMENS</span>
+                            <span style="color: var(--siemens-purple)">energy</span>
+                        </h1>
+                        <span class="text-gray-500">|</span>
+                        <span class="text-lg font-semibold text-gray-700">Advanced Substation Simulator</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="electricalSettingsBtn" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm">
+                            ⚙️ Electrical Settings
+                        </button>
+                        <div id="userInfo" class="flex items-center space-x-2 cursor-pointer">
+                            <img id="userAvatar" src="" alt="User" class="w-10 h-10 rounded-full hidden border-2 border-teal-500">
+                            <div>
+                                <div id="userName" class="text-sm font-medium text-gray-700"></div>
+                                <div id="userTitle" class="text-xs text-gray-500"></div>
+                            </div>
+                        </div>
+                        <button id="signOutBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm">
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Controls Panel -->
-            <div class="lg:w-1/3 bg-white p-6 rounded-2xl shadow-lg">
-                <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Control Center</h2>
-                
-                <!-- Mode Tabs -->
-                <div class="flex gap-2 mb-6">
-                    <button id="practiceTab" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold">Practice</button>
-                    <button id="tutorialTab" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300">Tutorial</button>
-                    <button id="quizTab" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300">Quiz</button>
-                </div>
-                
-                <!-- Practice Mode Controls -->
-                <div id="practiceControls" class="space-y-6">
-                    <div>
-                        <label for="operationSelect" class="block text-sm font-medium text-gray-700 mb-2">Operation Scenario:</label>
-                        <select id="operationSelect" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                            <option value="none" selected>-- Select Operation --</option>
-                            <optgroup label="Feeder Bay (220/66KV)">
-                                <option value="feeder_service">Feeder Bay - Service</option>
-                                <option value="feeder_maintenance">Feeder Bay - Maintenance</option>
-                            </optgroup>
-                            <optgroup label="Bus Coupler (220/66KV)">
-                                <option value="bus_coupler_service">Bus Coupler - Service</option>
-                                <option value="bus_coupler_maintenance">Bus Coupler - Maintenance</option>
-                            </optgroup>
-                            <optgroup label="Advanced Operations">
-                                <option value="bus_transfer">Bus Transfer Operation</option>
-                                <option value="emergency_isolation">Emergency Isolation</option>
-                            </optgroup>
-                        </select>
+        <!-- Main Content -->
+        <div class="container mx-auto p-4 md:p-6">
+            <!-- Status Bar -->
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-teal-600" id="voltageDisplay">220/66</div>
+                        <div class="text-xs text-gray-600">Voltage (kV)</div>
                     </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600" id="loadDisplay">0</div>
+                        <div class="text-xs text-gray-600">Load (MW)</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600" id="frequencyDisplay">50.00</div>
+                        <div class="text-xs text-gray-600">Frequency (Hz)</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600" id="statusDisplay">NORMAL</div>
+                        <div class="text-xs text-gray-600">System Status</div>
+                    </div>
+                </div>
+            </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <button id="applyScenario" class="bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition transform hover:scale-105">Show Solution</button>
-                        <button id="checkConfig" class="bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition transform hover:scale-105">Check Config</button>
-                        <button id="undoBtn" class="bg-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-600 transition">↶ Undo</button>
-                        <button id="redoBtn" class="bg-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-600 transition">↷ Redo</button>
-                    </div>
-                    
-                    <button id="reset" class="w-full bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition">Reset All</button>
-                </div>
-                
-                <!-- Tutorial Mode Controls -->
-                <div id="tutorialControls" class="space-y-6 hidden">
-                    <div class="p-4 bg-blue-50 rounded-lg">
-                        <h3 class="font-semibold mb-2">Tutorial Mode</h3>
-                        <p class="text-sm text-gray-600 mb-4">Follow the step-by-step guide to learn proper switching sequences.</p>
-                        <div class="progress-bar mb-2">
-                            <div id="tutorialProgress" class="progress-bar-fill" style="width: 0%"></div>
+            <div class="grid lg:grid-cols-3 gap-6">
+                <!-- Control Panel -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Control Center</h2>
+                        
+                        <!-- Mode Tabs -->
+                        <div class="flex gap-2 mb-6">
+                            <button id="practiceTab" class="flex-1 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold tab-active">Practice</button>
+                            <button id="scenarioTab" class="flex-1 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold">Scenarios</button>
+                            <button id="testTab" class="flex-1 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold">Test</button>
                         </div>
-                        <p class="text-sm">Step <span id="currentStep">0</span> of <span id="totalSteps">0</span></p>
+                        
+                        <!-- Practice Mode -->
+                        <div id="practiceControls" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Select Configuration:</label>
+                                <select id="operationSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                                    <option value="none">-- Select Operation --</option>
+                                    <optgroup label="Normal Operations">
+                                        <option value="feeder_service">Feeder Bay - Service</option>
+                                        <option value="bus_coupler_service">Bus Coupler - Service</option>
+                                        <option value="bus_transfer">Bus Transfer Operation</option>
+                                    </optgroup>
+                                    <optgroup label="Maintenance Operations">
+                                        <option value="feeder_maintenance">Feeder Bay - Maintenance</option>
+                                        <option value="bus_coupler_maintenance">Bus Coupler - Maintenance</option>
+                                        <option value="transformer_maintenance">Transformer - Maintenance</option>
+                                    </optgroup>
+                                    <optgroup label="Emergency Operations">
+                                        <option value="emergency_isolation">Emergency Isolation</option>
+                                        <option value="fault_isolation">Fault Isolation</option>
+                                        <option value="restoration">System Restoration</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="checkConfig" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition">
+                                    Validate
+                                </button>
+                                <button id="showSolution" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition">
+                                    Solution
+                                </button>
+                            </div>
+                            
+                            <button id="reset" class="w-full bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-600 transition">
+                                Reset All
+                            </button>
+                            
+                            <div class="p-3 bg-gray-50 rounded-lg">
+                                <div class="text-sm font-semibold mb-2">Quick Actions:</div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button class="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">Emergency Stop</button>
+                                    <button class="px-2 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600">Trip All</button>
+                                    <button class="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">Energize</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Scenario Mode -->
+                        <div id="scenarioControls" class="space-y-4 hidden">
+                            <div class="p-4 bg-purple-50 rounded-lg">
+                                <h3 class="font-semibold mb-2">Real-World Scenarios</h3>
+                                <select id="scenarioSelect" class="w-full p-2 border rounded-lg mb-3">
+                                    <option value="">Select Scenario</option>
+                                    <option value="storm">Storm Damage Recovery</option>
+                                    <option value="overload">System Overload Management</option>
+                                    <option value="scheduled">Scheduled Maintenance</option>
+                                    <option value="fault">Line Fault Isolation</option>
+                                </select>
+                                <button id="startScenario" class="w-full bg-purple-600 text-white font-semibold py-2 rounded-lg hover:bg-purple-700">
+                                    Start Scenario
+                                </button>
+                            </div>
+                            
+                            <div id="scenarioInfo" class="p-3 bg-blue-50 rounded-lg hidden">
+                                <h4 class="font-semibold text-sm mb-2">Scenario Objective:</h4>
+                                <p class="text-xs text-gray-700"></p>
+                                <div class="mt-3">
+                                    <div class="text-xs font-semibold">Time Remaining:</div>
+                                    <div class="text-xl font-bold text-blue-600" id="scenarioTimer">--:--</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Test Mode -->
+                        <div id="testControls" class="space-y-4 hidden">
+                            <div class="p-4 bg-red-50 rounded-lg">
+                                <h3 class="font-semibold mb-2">Certification Test</h3>
+                                <p class="text-xs text-gray-600 mb-3">Complete the test to earn your certification</p>
+                                
+                                <select id="testLevel" class="w-full p-2 border rounded-lg mb-3">
+                                    <option value="">Select Test Level</option>
+                                    <option value="basic">Basic Operations</option>
+                                    <option value="intermediate">Intermediate Safety</option>
+                                    <option value="advanced">Advanced Troubleshooting</option>
+                                    <option value="expert">Expert Certification</option>
+                                </select>
+                                
+                                <button id="startTest" class="w-full bg-red-600 text-white font-semibold py-2 rounded-lg hover:bg-red-700">
+                                    Begin Test
+                                </button>
+                            </div>
+                            
+                            <div id="testProgress" class="hidden">
+                                <div class="text-sm font-semibold mb-2">Progress:</div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div id="testProgressBar" class="bg-green-600 h-2 rounded-full" style="width: 0%"></div>
+                                </div>
+                                <div class="text-xs text-gray-600 mt-1">
+                                    Question <span id="currentQuestion">0</span> of <span id="totalQuestions">10</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status Display -->
+                        <div id="status" class="mt-6 p-4 rounded-lg bg-gray-50"></div>
+                        
+                        <!-- Performance Metrics -->
+                        <div class="mt-6 p-4 bg-gradient-to-r from-teal-50 to-purple-50 rounded-lg">
+                            <h3 class="text-sm font-semibold mb-3">Session Performance</h3>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <div class="text-gray-600">Operations</div>
+                                    <div class="text-lg font-bold text-teal-600" id="operationCount">0</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-600">Accuracy</div>
+                                    <div class="text-lg font-bold text-purple-600" id="accuracyRate">0%</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-600">Time</div>
+                                    <div class="text-lg font-bold text-blue-600" id="sessionTime">00:00</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-600">Score</div>
+                                    <div class="text-lg font-bold text-green-600" id="sessionScore">0</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <button id="startTutorial" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition">Start Tutorial</button>
-                    <button id="nextStep" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition hidden">Next Step →</button>
-                    <div id="tutorialInstructions" class="p-4 bg-yellow-50 rounded-lg hidden">
-                        <p class="text-sm"></p>
+                </div>
+
+                <!-- Diagram Panel -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">Single Line Diagram</h3>
+                            <div class="flex gap-2">
+                                <button id="zoomIn" class="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200">🔍+</button>
+                                <button id="zoomOut" class="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200">🔍-</button>
+                                <button id="toggleAnnotations" class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
+                                    📝 Annotations
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <svg id="substationDiagram" viewBox="0 0 900 650" class="w-full h-full">
+                            <!-- Grid Background -->
+                            <defs>
+                                <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                                    <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+                                </pattern>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#grid)" />
+                            
+                            <!-- Voltage Level Indicators -->
+                            <text x="50" y="30" class="text-xs font-bold" fill="#DC2626">220kV</text>
+                            <text x="50" y="480" class="text-xs font-bold" fill="#F59E0B">66kV</text>
+                            
+                            <!-- Busbars with voltage coloring -->
+                            <rect x="150" y="100" width="500" height="10" class="busbar voltage-220kv" id="BB1A" />
+                            <text x="100" y="108" class="label font-semibold">BB 1A</text>
+                            
+                            <rect x="150" y="150" width="500" height="10" class="busbar voltage-220kv" id="BB1B" />
+                            <text x="100" y="158" class="label font-semibold">BB 1B</text>
+                            
+                            <rect x="150" y="450" width="500" height="10" class="busbar voltage-66kv" id="BB2A" />
+                            <text x="100" y="458" class="label font-semibold">BB 2A</text>
+                            
+                            <rect x="150" y="500" width="500" height="10" class="busbar voltage-66kv" id="BB2B" />
+                            <text x="100" y="508" class="label font-semibold">BB 2B</text>
+                            
+                            <!-- Transformer Symbol -->
+                            <g transform="translate(200, 300)">
+                                <circle cx="0" cy="0" r="25" stroke="#6B7280" stroke-width="2" fill="none"/>
+                                <circle cx="0" cy="0" r="20" stroke="#6B7280" stroke-width="2" fill="none"/>
+                                <text x="35" y="5" class="text-xs font-semibold" fill="#374151">T1</text>
+                                <text x="35" y="18" class="text-xs" fill="#6B7280">100MVA</text>
+                            </g>
+
+                            <!-- Feeder Lines & Switches -->
+                            <line x1="200" y1="150" x2="200" y2="275" stroke="#6B7280" stroke-width="3" />
+                            <line x1="200" y1="325" x2="200" y2="450" stroke="#6B7280" stroke-width="3" />
+                            
+                            <g class="switch" id="Q1" data-state="open">
+                                <rect x="185" y="165" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M190 180 L210 180" class="switch-line" stroke-width="4"/>
+                                <text x="230" y="185" class="label font-semibold">Q1</text>
+                            </g>
+                            
+                            <g class="switch" id="Q2" data-state="open">
+                                <rect x="185" y="210" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M190 225 L210 225" class="switch-line" stroke-width="4"/>
+                                <text x="230" y="230" class="label font-semibold">Q2</text>
+                            </g>
+                            
+                            <g class="switch" id="Q0" data-state="open">
+                                <rect x="185" y="340" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M190 355 L210 355" class="switch-line" stroke-width="4"/>
+                                <text x="230" y="360" class="label font-semibold">Q0</text>
+                                <text x="230" y="375" class="text-xs" fill="#6B7280">CB</text>
+                            </g>
+                            
+                            <g class="switch" id="Q9" data-state="open">
+                                <rect x="185" y="390" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M190 405 L210 405" class="switch-line" stroke-width="4"/>
+                                <text x="230" y="410" class="label font-semibold">Q9</text>
+                            </g>
+                            
+                            <line x1="200" y1="420" x2="200" y2="550" stroke="#6B7280" stroke-width="3" />
+                            <text x="200" y="570" class="label font-bold">220kV Feeder</text>
+
+                            <!-- Outgoing Bay -->
+                            <line x1="600" y1="100" x2="600" y2="50" stroke="#6B7280" stroke-width="3"/>
+                            <line x1="600" y1="50" x2="650" y2="50" stroke="#6B7280" stroke-width="3"/>
+                            <path d="M650 50 L630 40 M650 50 L630 60" stroke="#6B7280" stroke-width="2" fill="none"/>
+                            <text x="600" y="30" class="label font-bold">66kV Out</text>
+                            
+                            <g class="switch" id="Q8" data-state="open">
+                                <rect x="585" y="65" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M590 80 L610 80" class="switch-line" stroke-width="4"/>
+                                <text x="560" y="85" class="label font-semibold">Q8</text>
+                            </g>
+
+                            <!-- Bus Coupler Switches -->
+                            <line x1="350" y1="100" x2="350" y2="150" stroke="#6B7280" stroke-width="3"/>
+                            <g class="switch" id="Q11" data-state="open">
+                                <rect x="335" y="115" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M340 130 L360 130" class="switch-line" stroke-width="4" transform="rotate(90 350 125)"/>
+                                <text x="380" y="130" class="label font-semibold">Q11</text>
+                            </g>
+
+                            <line x1="450" y1="100" x2="450" y2="150" stroke="#6B7280" stroke-width="3"/>
+                            <g class="switch" id="Q12" data-state="open">
+                                <rect x="435" y="115" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M440 130 L460 130" class="switch-line" stroke-width="4" transform="rotate(90 450 125)"/>
+                                <text x="480" y="130" class="label font-semibold">Q12</text>
+                            </g>
+
+                            <line x1="350" y1="450" x2="350" y2="500" stroke="#6B7280" stroke-width="3"/>
+                            <g class="switch" id="Q21" data-state="open">
+                                <rect x="335" y="465" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M340 480 L360 480" class="switch-line" stroke-width="4" transform="rotate(90 350 475)"/>
+                                <text x="380" y="480" class="label font-semibold">Q21</text>
+                            </g>
+
+                            <line x1="450" y1="450" x2="450" y2="500" stroke="#6B7280" stroke-width="3"/>
+                            <g class="switch" id="Q22" data-state="open">
+                                <rect x="435" y="465" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M440 480 L460 480" class="switch-line" stroke-width="4" transform="rotate(90 450 475)"/>
+                                <text x="480" y="480" class="label font-semibold">Q22</text>
+                            </g>
+
+                            <!-- Earthing Switches -->
+                            <g class="switch" id="BB1_earthed" data-state="open">
+                                <rect x="680" y="120" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M685 135 L705 135" class="switch-line" stroke-width="4"/>
+                                <text x="720" y="140" class="label font-semibold">ES1</text>
+                            </g>
+                            
+                            <g class="switch" id="BB2_earthed" data-state="open">
+                                <rect x="680" y="470" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
+                                <path d="M685 485 L705 485" class="switch-line" stroke-width="4"/>
+                                <text x="720" y="490" class="label font-semibold">ES2</text>
+                            </g>
+                            
+                            <!-- Earth symbols -->
+                            <g transform="translate(720, 135)">
+                                <line x1="0" y1="0" x2="15" y2="0" stroke="#6B7280" stroke-width="2"/>
+                                <line x1="15" y1="-5" x2="15" y2="5" stroke="#6B7280" stroke-width="2"/>
+                                <line x1="18" y1="-3" x2="18" y2="3" stroke="#6B7280" stroke-width="2"/>
+                                <line x1="21" y1="-1" x2="21" y2="1" stroke="#6B7280" stroke-width="2"/>
+                            </g>
+                            
+                            <g transform="translate(720, 485)">
+                                <line x1="0" y1="0" x2="15" y2="0" stroke="#6B7280" stroke-width="2"/>
+                                <line x1="15" y1="-5" x2="15" y2="5" stroke="#6B7280" stroke-width="2"/>
+                                <line x1="18" y1="-3" x2="18" y2="3" stroke="#6B7280" stroke-width="2"/>
+                                <line x1="21" y1="-1" x2="21" y2="1" stroke="#6B7280" stroke-width="2"/>
+                            </g>
+                        </svg>
                     </div>
-                </div>
-                
-                <!-- Quiz Mode Controls -->
-                <div id="quizControls" class="space-y-6 hidden">
-                    <div class="p-4 bg-purple-50 rounded-lg">
-                        <h3 class="font-semibold mb-2">Quiz Mode</h3>
-                        <p class="text-sm text-gray-600 mb-4">Test your knowledge with random scenarios!</p>
-                        <div class="text-2xl font-bold text-purple-600">Score: <span id="quizScore">0</span></div>
-                        <div class="text-sm text-gray-600">Streak: <span id="quizStreak">0</span></div>
-                    </div>
-                    <button id="startQuiz" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition">Start New Quiz</button>
-                    <div id="quizChallenge" class="p-4 bg-gray-50 rounded-lg hidden">
-                        <p class="font-semibold mb-2">Challenge:</p>
-                        <p class="text-sm"></p>
-                    </div>
-                    <button id="submitQuiz" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition hidden">Submit Answer</button>
-                </div>
-
-                <!-- Status Display -->
-                <div id="status" class="mt-6 p-4 rounded-lg transition-all duration-300"></div>
-                
-                <!-- Statistics -->
-                <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h3 class="text-sm font-semibold mb-2">Session Statistics</h3>
-                    <div class="grid grid-cols-2 gap-2 text-sm">
-                        <div>Operations: <span id="operationCount" class="font-bold">0</span></div>
-                        <div>Success Rate: <span id="successRate" class="font-bold">0%</span></div>
-                        <div>Total Clicks: <span id="clickCount" class="font-bold">0</span></div>
-                        <div>Time: <span id="sessionTime" class="font-bold">0:00</span></div>
-                    </div>
-                </div>
-
-                <!-- Legend -->
-                <div class="mt-6 border-t pt-4">
-                    <h3 class="text-lg font-semibold mb-3">Legend</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li class="flex items-center"><span class="status-dot bg-green-500"></span> Closed / On</li>
-                        <li class="flex items-center"><span class="status-dot bg-red-500"></span> Open / Off</li>
-                        <li class="flex items-center"><span class="status-dot bg-amber-500"></span> Earthed</li>
-                        <li class="flex items-center"><span class="status-dot bg-blue-500"></span> Tutorial Focus</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Diagram Panel -->
-            <div class="lg:w-2/3 bg-white p-4 rounded-2xl shadow-lg">
-                <div class="mb-4 flex justify-between items-center">
-                    <h3 class="text-lg font-semibold">Single Line Diagram</h3>
-                    <div class="flex gap-2">
-                        <button id="togglePowerFlow" class="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition">Show Power Flow</button>
-                        <button id="toggleLabels" class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition">Toggle Labels</button>
-                    </div>
-                </div>
-                <svg id="substationDiagram" viewBox="0 0 900 650" class="w-full h-full">
-                    <!-- Transformer symbols -->
-                    <g id="transformer1" transform="translate(250, 320)">
-                        <circle cx="0" cy="0" r="20" class="transformer" />
-                        <circle cx="0" cy="0" r="15" class="transformer" />
-                        <text x="30" y="5" class="label" font-size="12">T1</text>
-                    </g>
-                    
-                    <g id="transformer2" transform="translate(550, 320)">
-                        <circle cx="0" cy="0" r="20" class="transformer" />
-                        <circle cx="0" cy="0" r="15" class="transformer" />
-                        <text x="30" y="5" class="label" font-size="12">T2</text>
-                    </g>
-
-                    <!-- Power flow indicators (initially hidden) -->
-                    <path id="powerFlow1" d="M200 150 L200 450" class="power-flow" />
-                    <path id="powerFlow2" d="M350 100 L350 150" class="power-flow" />
-                    <path id="powerFlow3" d="M450 100 L450 150" class="power-flow" />
-                    <path id="powerFlow4" d="M350 450 L350 500" class="power-flow" />
-                    <path id="powerFlow5" d="M450 450 L450 500" class="power-flow" />
-
-                    <!-- Busbars -->
-                    <rect x="150" y="100" width="500" height="10" class="busbar" id="BB1A" data-tooltip="Busbar 1A - Primary 220kV busbar section A" />
-                    <text x="100" y="108" class="label">BB 1A</text>
-                    
-                    <rect x="150" y="150" width="500" height="10" class="busbar" id="BB1B" data-tooltip="Busbar 1B - Primary 220kV busbar section B" />
-                    <text x="100" y="158" class="label">BB 1B</text>
-                    
-                    <rect x="150" y="450" width="500" height="10" class="busbar" id="BB2A" data-tooltip="Busbar 2A - Secondary 66kV busbar section A" />
-                    <text x="100" y="458" class="label">BB 2A</text>
-                    
-                    <rect x="150" y="500" width="500" height="10" class="busbar" id="BB2B" data-tooltip="Busbar 2B - Secondary 66kV busbar section B" />
-                    <text x="100" y="508" class="label">BB 2B</text>
-
-                    <!-- Feeder Lines & Switches -->
-                    <line x1="200" y1="150" x2="200" y2="450" class="line" id="feederLine" />
-                    
-                    <g class="switch" id="Q1" data-state="open" data-tooltip="Q1 - Isolator for Busbar 1A connection">
-                        <rect x="185" y="180" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M190 195 L210 195" class="switch-line" stroke-width="4"/>
-                        <text x="200" y="225" class="label">Q1</text>
-                    </g>
-                    
-                    <g class="switch" id="Q2" data-state="open" data-tooltip="Q2 - Isolator for Busbar 1B connection">
-                        <rect x="185" y="240" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M190 255 L210 255" class="switch-line" stroke-width="4"/>
-                        <text x="200" y="285" class="label">Q2</text>
-                    </g>
-                    
-                    <g class="switch" id="Q0" data-state="open" data-tooltip="Q0 - Main Circuit Breaker">
-                        <rect x="185" y="300" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M190 315 L210 315" class="switch-line" stroke-width="4"/>
-                        <text x="200" y="345" class="label">Q0</text>
-                    </g>
-                    
-                    <g class="switch" id="Q9" data-state="open" data-tooltip="Q9 - Line Isolator">
-                        <rect x="185" y="360" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M190 375 L210 375" class="switch-line" stroke-width="4"/>
-                        <text x="200" y="405" class="label">Q9</text>
-                    </g>
-                    
-                    <line x1="200" y1="410" x2="200" y2="550" class="line" />
-                    <text x="200" y="570" class="label">220KV Feeder</text>
-
-                    <!-- Outgoing Bay -->
-                    <line x1="600" y1="100" x2="600" y2="50" class="line"/>
-                    <line x1="600" y1="50" x2="650" y1="50" class="line"/>
-                    <path d="M650 50 L630 40 M650 50 L630 60" class="line" />
-                    <text x="600" y="30" class="label">Outgoing 66KV</text>
-                    
-                    <g class="switch" id="Q8" data-state="open" data-tooltip="Q8 - Outgoing Circuit Breaker">
-                        <rect x="585" y="65" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M590 80 L610 80" class="switch-line" stroke-width="4"/>
-                        <text x="560" y="85" class="label">Q8</text>
-                    </g>
-
-                    <!-- Bus Coupler Switches -->
-                    <line x1="350" y1="100" x2="350" y2="150" class="line"/>
-                    <g class="switch" id="Q11" data-state="open" data-tooltip="Q11 - Bus Coupler Isolator BB1A">
-                        <rect x="335" y="115" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M340 130 L360 130" class="switch-line" stroke-width="4" transform="rotate(90 350 125)"/>
-                        <text x="380" y="130" class="label">Q11</text>
-                    </g>
-
-                    <line x1="450" y1="100" x2="450" y2="150" class="line"/>
-                    <g class="switch" id="Q12" data-state="open" data-tooltip="Q12 - Bus Coupler Isolator BB1B">
-                        <rect x="435" y="115" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M440 130 L460 130" class="switch-line" stroke-width="4" transform="rotate(90 450 125)"/>
-                        <text x="480" y="130" class="label">Q12</text>
-                    </g>
-
-                    <line x1="350" y1="450" x2="350" y2="500" class="line"/>
-                    <g class="switch" id="Q21" data-state="open" data-tooltip="Q21 - Bus Coupler Isolator BB2A">
-                        <rect x="335" y="465" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M340 480 L360 480" class="switch-line" stroke-width="4" transform="rotate(90 350 475)"/>
-                        <text x="380" y="480" class="label">Q21</text>
-                    </g>
-
-                    <line x1="450" y1="450" x2="450" y2="500" class="line"/>
-                    <g class="switch" id="Q22" data-state="open" data-tooltip="Q22 - Bus Coupler Isolator BB2B">
-                        <rect x="435" y="465" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M440 480 L460 480" class="switch-line" stroke-width="4" transform="rotate(90 450 475)"/>
-                        <text x="480" y="480" class="label">Q22</text>
-                    </g>
-
-                    <!-- Earthing Switches -->
-                    <g class="switch" id="BB1_earthed" data-state="open" data-tooltip="BB1 Earth - Earthing switch for BB1 maintenance">
-                        <rect x="680" y="120" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M685 135 L705 135" class="switch-line" stroke-width="4"/>
-                        <text x="700" y="165" class="label">BB1 Earth</text>
-                    </g>
-                    
-                    <g class="switch" id="BB2_earthed" data-state="open" data-tooltip="BB2 Earth - Earthing switch for BB2 maintenance">
-                        <rect x="680" y="470" width="30" height="30" rx="4" class="switch-rect" fill="white" stroke-width="2"/>
-                        <path d="M685 485 L705 485" class="switch-line" stroke-width="4"/>
-                        <text x="700" y="515" class="label">BB2 Earth</text>
-                    </g>
-
-                    <!-- Earth symbols -->
-                    <g transform="translate(720, 135)">
-                        <line x1="0" y1="0" x2="15" y2="0" stroke="#6B7280" stroke-width="2"/>
-                        <line x1="15" y1="-5" x2="15" y2="5" stroke="#6B7280" stroke-width="2"/>
-                        <line x1="18" y1="-3" x2="18" y2="3" stroke="#6B7280" stroke-width="2"/>
-                        <line x1="21" y1="-1" x2="21" y2="1" stroke="#6B7280" stroke-width="2"/>
-                    </g>
-                    
-                    <g transform="translate(720, 485)">
-                        <line x1="0" y1="0" x2="15" y2="0" stroke="#6B7280" stroke-width="2"/>
-                        <line x1="15" y1="-5" x2="15" y2="5" stroke="#6B7280" stroke-width="2"/>
-                        <line x1="18" y1="-3" x2="18" y2="3" stroke="#6B7280" stroke-width="2"/>
-                        <line x1="21" y1="-1" x2="21" y2="1" stroke="#6B7280" stroke-width="2"/>
-                    </g>
-                </svg>
-            </div>
-        </div>
-
-        <!-- Help Section -->
-        <div class="mt-8 bg-white p-6 rounded-2xl shadow-lg">
-            <h2 class="text-xl font-semibold mb-4">Quick Help</h2>
-            <div class="grid md:grid-cols-3 gap-4 text-sm">
-                <div>
-                    <h3 class="font-semibold mb-2">🎯 Interlocking Principles</h3>
-                    <p class="text-gray-600">Interlocks prevent unsafe operations. Never close breakers without proper isolation.</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold mb-2">⚡ Safety Rules</h3>
-                    <p class="text-gray-600">Always isolate before maintenance. Earth all dead sections. Follow proper switching sequences.</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold mb-2">🔧 Operation Tips</h3>
-                    <p class="text-gray-600">Click switches to change state. Hover for tooltips. Use tutorial mode to learn sequences.</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Enhanced interlocking data with new scenarios
-            const interlockData = {
-                feeder_service: {
-                    Q1: 'open', Q2: 'open', Q0: 'closed', Q9: 'open', Q8: 'closed',
-                    Q11: 'open', Q12: 'open', Q21: 'open', Q22: 'open',
-                    BB1_earthed: 'open', BB2_earthed: 'open',
-                    description: 'Normal service configuration with feeder in operation'
-                },
-                feeder_maintenance: {
-                    Q1: 'closed', Q2: 'closed', Q0: 'closed', Q9: 'closed', Q8: 'open',
-                    Q11: 'open', Q12: 'open', Q21: 'open', Q22: 'open',
-                    BB1_earthed: 'earthed', BB2_earthed: 'earthed',
-                    description: 'Safe maintenance configuration with proper earthing'
-                },
-                bus_coupler_service: {
-                    Q1: 'open', Q2: 'open', Q0: 'closed', Q9: 'open', Q8: 'open',
-                    Q11: 'closed', Q12: 'closed', Q21: 'closed', Q22: 'closed',
-                    BB1_earthed: 'open', BB2_earthed: 'open',
-                    description: 'Bus coupler in service for parallel operation'
-                },
-                bus_coupler_maintenance: {
-                    Q1: 'closed', Q2: 'closed', Q0: 'closed', Q9: 'open', Q8: 'open',
-                    Q11: 'earthed', Q12: 'earthed', Q21: 'earthed', Q22: 'earthed',
-                    BB1_earthed: 'open', BB2_earthed: 'open',
-                    description: 'Bus coupler isolated and earthed for maintenance'
-                },
-                bus_transfer: {
-                    Q1: 'closed', Q2: 'open', Q0: 'closed', Q9: 'open', Q8: 'closed',
-                    Q11: 'closed', Q12: 'open', Q21: 'closed', Q22: 'open',
-                    BB1_earthed: 'open', BB2_earthed: 'open',
-                    description: 'Transferring load from BB1B to BB1A'
-                },
-                emergency_isolation: {
-                    Q1: 'open', Q2: 'open', Q0: 'open', Q9: 'closed', Q8: 'open',
-                    Q11: 'open', Q12: 'open', Q21: 'open', Q22: 'open',
-                    BB1_earthed: 'earthed', BB2_earthed: 'earthed',
-                    description: 'Emergency isolation with all sections de-energized'
-                }
-            };
-
-            // Tutorial sequences
-            const tutorialSequences = {
-                basic_switching: [
-                    { switch: 'Q9', action: 'close', instruction: 'First, close the line isolator Q9 to prepare the circuit' },
-                    { switch: 'Q1', action: 'close', instruction: 'Close isolator Q1 to connect to Busbar 1A' },
-                    { switch: 'Q0', action: 'close', instruction: 'Now close the main circuit breaker Q0 to energize' },
-                    { switch: 'Q8', action: 'close', instruction: 'Finally, close Q8 to complete the circuit' },
-                ],
-                maintenance_prep: [
-                    { switch: 'Q0', action: 'open', instruction: 'Open the circuit breaker Q0 first for safety' },
-                    { switch: 'Q1', action: 'open', instruction: 'Open isolator Q1 to disconnect from BB1A' },
-                    { switch: 'Q2', action: 'open', instruction: 'Open isolator Q2 to disconnect from BB1B' },
-                    { switch: 'Q9', action: 'open', instruction: 'Open line isolator Q9 for complete isolation' },
-                    { switch: 'BB1_earthed', action: 'earthed', instruction: 'Apply earthing to BB1 for safe maintenance' },
-                ]
-            };
-
-            // State management
-            let currentMode = 'practice';
-            let soundEnabled = true;
-            let darkMode = false;
-            let powerFlowVisible = false;
-            let history = [];
-            let historyIndex = -1;
-            let tutorialStep = 0;
-            let currentTutorial = null;
-            let stats = {
+        // Configuration
+        const GOOGLE_CLIENT_ID = '774320496571-331fo6a5ivi1daoqbrskrflhkr7205rr.apps.googleusercontent.com';
+        
+        // Global variables
+        let currentUser = null;
+        let userProfile = {
+            name: '',
+            title: '',
+            department: '',
+            experience: 'beginner',
+            image: 'https://via.placeholder.com/150',
+            achievements: [],
+            stats: {
+                totalHours: 0,
+                scenariosCompleted: 0,
+                successRate: 0,
                 operations: 0,
-                successful: 0,
-                clicks: 0,
-                startTime: Date.now(),
-                quizScore: 0,
-                quizStreak: 0
+                successful: 0
+            }
+        };
+        
+        let electricalSettings = {
+            primaryVoltage: 220,
+            secondaryVoltage: 66,
+            frequency: 50,
+            transformerRating: 100,
+            transformerType: 'oil',
+            coolingMethod: 'ONAN',
+            busbarConfig: 'double',
+            overcurrentLimit: 1000,
+            earthFaultLimit: 100,
+            autoRecloser: false,
+            interlockingRules: {
+                rule1: true,
+                rule2: true,
+                rule3: true,
+                rule4: false
+            }
+        };
+        
+        let sessionData = {
+            startTime: Date.now(),
+            operations: 0,
+            successful: 0,
+            score: 0
+        };
+        
+        // Enhanced interlocking data
+        const interlockData = {
+            feeder_service: {
+                Q1: 'closed', Q2: 'open', Q0: 'closed', Q9: 'open', Q8: 'closed',
+                Q11: 'open', Q12: 'open', Q21: 'open', Q22: 'open',
+                BB1_earthed: 'open', BB2_earthed: 'open'
+            },
+            feeder_maintenance: {
+                Q1: 'open', Q2: 'open', Q0: 'open', Q9: 'open', Q8: 'open',
+                Q11: 'open', Q12: 'open', Q21: 'open', Q22: 'open',
+                BB1_earthed: 'earthed', BB2_earthed: 'earthed'
+            },
+            bus_coupler_service: {
+                Q1: 'open', Q2: 'open', Q0: 'closed', Q9: 'open', Q8: 'open',
+                Q11: 'closed', Q12: 'closed', Q21: 'closed', Q22: 'closed',
+                BB1_earthed: 'open', BB2_earthed: 'open'
+            },
+            bus_coupler_maintenance: {
+                Q1: 'open', Q2: 'open', Q0: 'open', Q9: 'open', Q8: 'open',
+                Q11: 'earthed', Q12: 'earthed', Q21: 'earthed', Q22: 'earthed',
+                BB1_earthed: 'open', BB2_earthed: 'open'
+            },
+            bus_transfer: {
+                Q1: 'closed', Q2: 'open', Q0: 'closed', Q9: 'open', Q8: 'closed',
+                Q11: 'closed', Q12: 'open', Q21: 'closed', Q22: 'open',
+                BB1_earthed: 'open', BB2_earthed: 'open'
+            },
+            transformer_maintenance: {
+                Q1: 'open', Q2: 'open', Q0: 'open', Q9: 'open', Q8: 'open',
+                Q11: 'open', Q12: 'open', Q21: 'open', Q22: 'open',
+                BB1_earthed: 'earthed', BB2_earthed: 'earthed'
+            },
+            emergency_isolation: {
+                Q1: 'open', Q2: 'open', Q0: 'open', Q9: 'open', Q8: 'open',
+                Q11: 'open', Q12: 'open', Q21: 'open', Q22: 'open',
+                BB1_earthed: 'earthed', BB2_earthed: 'earthed'
+            },
+            fault_isolation: {
+                Q1: 'open', Q2: 'closed', Q0: 'open', Q9: 'closed', Q8: 'closed',
+                Q11: 'open', Q12: 'closed', Q21: 'open', Q22: 'closed',
+                BB1_earthed: 'open', BB2_earthed: 'open'
+            },
+            restoration: {
+                Q1: 'closed', Q2: 'closed', Q0: 'closed', Q9: 'closed', Q8: 'closed',
+                Q11: 'closed', Q12: 'closed', Q21: 'closed', Q22: 'closed',
+                BB1_earthed: 'open', BB2_earthed: 'open'
+            }
+        };
+        
+        // Initialize Google Sign-In
+        window.onload = function () {
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: handleCredentialResponse
+            });
+            
+            google.accounts.id.renderButton(
+                document.getElementById("googleSignInDiv"),
+                { 
+                    theme: "outline", 
+                    size: "large",
+                    width: "350",
+                    text: "signin_with"
+                }
+            );
+            
+            // Load saved data if exists
+            loadSavedData();
+        };
+        
+        // Handle Google Sign-In response
+        function handleCredentialResponse(response) {
+            const responsePayload = decodeJwtResponse(response.credential);
+            
+            currentUser = {
+                id: responsePayload.sub,
+                name: responsePayload.name,
+                email: responsePayload.email,
+                picture: responsePayload.picture
             };
-
-            // DOM elements
+            
+            // Load or create user profile
+            loadUserProfile();
+            
+            // Show main app
+            showMainApp();
+        }
+        
+        // Decode JWT token
+        function decodeJwtResponse(token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+        
+        // Load user profile
+        function loadUserProfile() {
+            const savedProfile = localStorage.getItem(`profile_${currentUser.id}`);
+            if (savedProfile) {
+                userProfile = JSON.parse(savedProfile);
+            } else {
+                userProfile.name = currentUser.name;
+                userProfile.image = currentUser.picture;
+            }
+        }
+        
+        // Save user profile
+        function saveUserProfile() {
+            if (currentUser) {
+                localStorage.setItem(`profile_${currentUser.id}`, JSON.stringify(userProfile));
+                showStatus('Profile saved successfully!', 'success');
+            }
+        }
+        
+        // Load saved data
+        function loadSavedData() {
+            const savedSettings = localStorage.getItem('electricalSettings');
+            if (savedSettings) {
+                electricalSettings = JSON.parse(savedSettings);
+            }
+        }
+        
+        // Show main application
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            if (currentUser) {
+                document.getElementById('userName').textContent = userProfile.name || currentUser.name;
+                document.getElementById('userTitle').textContent = userProfile.title || 'Operator';
+                document.getElementById('userAvatar').src = userProfile.image || currentUser.picture;
+                document.getElementById('userAvatar').classList.remove('hidden');
+            } else {
+                document.getElementById('userName').textContent = 'Guest User';
+                document.getElementById('userTitle').textContent = 'Limited Access';
+            }
+            
+            updateVoltageDisplay();
+            initializeApp();
+            startSessionTimer();
+        }
+        
+        // Update voltage display
+        function updateVoltageDisplay() {
+            document.getElementById('voltageDisplay').textContent = 
+                `${electricalSettings.primaryVoltage}/${electricalSettings.secondaryVoltage}`;
+            document.getElementById('frequencyDisplay').textContent = 
+                electricalSettings.frequency.toFixed(2);
+        }
+        
+        // Guest mode
+        document.getElementById('guestMode').addEventListener('click', () => {
+            currentUser = null;
+            showMainApp();
+        });
+        
+        // Sign out
+        document.getElementById('signOutBtn').addEventListener('click', () => {
+            saveUserProfile();
+            google.accounts.id.disableAutoSelect();
+            currentUser = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        });
+        
+        // Profile modal handlers
+        document.getElementById('userInfo').addEventListener('click', () => {
+            if (currentUser) {
+                openProfileModal();
+            } else {
+                showStatus('Please sign in to access profile', 'warning');
+            }
+        });
+        
+        function openProfileModal() {
+            document.getElementById('profileModal').classList.remove('hidden');
+            
+            // Load profile data
+            document.getElementById('profileImage').src = userProfile.image || 'https://via.placeholder.com/150';
+            document.getElementById('profileName').value = userProfile.name || '';
+            document.getElementById('profileTitle').value = userProfile.title || '';
+            document.getElementById('profileDepartment').value = userProfile.department || '';
+            document.getElementById('profileExperience').value = userProfile.experience || 'beginner';
+            
+            // Update stats
+            document.getElementById('totalHours').textContent = 
+                Math.floor(userProfile.stats.totalHours / 60) + ' hrs';
+            document.getElementById('scenariosCompleted').textContent = 
+                userProfile.stats.scenariosCompleted;
+            document.getElementById('profileSuccessRate').textContent = 
+                userProfile.stats.successRate + '%';
+        }
+        
+        document.getElementById('closeProfileModal').addEventListener('click', () => {
+            document.getElementById('profileModal').classList.add('hidden');
+        });
+        
+        document.getElementById('saveProfile').addEventListener('click', () => {
+            userProfile.name = document.getElementById('profileName').value;
+            userProfile.title = document.getElementById('profileTitle').value;
+            userProfile.department = document.getElementById('profileDepartment').value;
+            userProfile.experience = document.getElementById('profileExperience').value;
+            
+            saveUserProfile();
+            document.getElementById('profileModal').classList.add('hidden');
+            
+            // Update display
+            document.getElementById('userName').textContent = userProfile.name;
+            document.getElementById('userTitle').textContent = userProfile.title;
+        });
+        
+        // Profile image upload
+        document.getElementById('profileImageInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    userProfile.image = e.target.result;
+                    document.getElementById('profileImage').src = e.target.result;
+                    document.getElementById('userAvatar').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Export profile data
+        document.getElementById('exportProfile').addEventListener('click', () => {
+            const exportData = {
+                profile: userProfile,
+                settings: electricalSettings,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], 
+                { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `substation_profile_${Date.now()}.json`;
+            a.click();
+        });
+        
+        // Electrical settings modal
+        document.getElementById('electricalSettingsBtn').addEventListener('click', () => {
+            openElectricalModal();
+        });
+        
+        function openElectricalModal() {
+            document.getElementById('electricalModal').classList.remove('hidden');
+            
+            // Load current settings
+            document.getElementById('primaryVoltage').value = electricalSettings.primaryVoltage;
+            document.getElementById('secondaryVoltage').value = electricalSettings.secondaryVoltage;
+            document.getElementById('systemFrequency').value = electricalSettings.frequency;
+            document.getElementById('transformerRating').value = electricalSettings.transformerRating;
+            document.getElementById('transformerType').value = electricalSettings.transformerType;
+            document.getElementById('coolingMethod').value = electricalSettings.coolingMethod;
+            document.getElementById('busbarConfig').value = electricalSettings.busbarConfig;
+            document.getElementById('overcurrentLimit').value = electricalSettings.overcurrentLimit;
+            document.getElementById('earthFaultLimit').value = electricalSettings.earthFaultLimit;
+            document.getElementById('autoRecloser').checked = electricalSettings.autoRecloser;
+            
+            // Load interlocking rules
+            document.getElementById('rule1').checked = electricalSettings.interlockingRules.rule1;
+            document.getElementById('rule2').checked = electricalSettings.interlockingRules.rule2;
+            document.getElementById('rule3').checked = electricalSettings.interlockingRules.rule3;
+            document.getElementById('rule4').checked = electricalSettings.interlockingRules.rule4;
+        }
+        
+        document.getElementById('closeElectricalModal').addEventListener('click', () => {
+            document.getElementById('electricalModal').classList.add('hidden');
+        });
+        
+        document.getElementById('saveElectrical').addEventListener('click', () => {
+            // Save settings
+            electricalSettings.primaryVoltage = parseInt(document.getElementById('primaryVoltage').value);
+            electricalSettings.secondaryVoltage = parseInt(document.getElementById('secondaryVoltage').value);
+            electricalSettings.frequency = parseInt(document.getElementById('systemFrequency').value);
+            electricalSettings.transformerRating = parseInt(document.getElementById('transformerRating').value);
+            electricalSettings.transformerType = document.getElementById('transformerType').value;
+            electricalSettings.coolingMethod = document.getElementById('coolingMethod').value;
+            electricalSettings.busbarConfig = document.getElementById('busbarConfig').value;
+            electricalSettings.overcurrentLimit = parseInt(document.getElementById('overcurrentLimit').value);
+            electricalSettings.earthFaultLimit = parseInt(document.getElementById('earthFaultLimit').value);
+            electricalSettings.autoRecloser = document.getElementById('autoRecloser').checked;
+            
+            electricalSettings.interlockingRules = {
+                rule1: document.getElementById('rule1').checked,
+                rule2: document.getElementById('rule2').checked,
+                rule3: document.getElementById('rule3').checked,
+                rule4: document.getElementById('rule4').checked
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('electricalSettings', JSON.stringify(electricalSettings));
+            
+            // Update display
+            updateVoltageDisplay();
+            
+            document.getElementById('electricalModal').classList.add('hidden');
+            showStatus('Electrical configuration saved!', 'success');
+        });
+        
+        // Load preset configurations
+        document.getElementById('loadPreset').addEventListener('click', () => {
+            const presets = {
+                european: { primary: 220, secondary: 66, frequency: 50 },
+                american: { primary: 138, secondary: 34.5, frequency: 60 },
+                industrial: { primary: 33, secondary: 11, frequency: 50 }
+            };
+            
+            // For demo, load European preset
+            electricalSettings.primaryVoltage = presets.european.primary;
+            electricalSettings.secondaryVoltage = presets.european.secondary;
+            electricalSettings.frequency = presets.european.frequency;
+            
+            openElectricalModal(); // Refresh modal
+            showStatus('European preset loaded', 'info');
+        });
+        
+        // Main app initialization
+        function initializeApp() {
             const switches = document.querySelectorAll('.switch');
-            const statusDiv = document.getElementById('status');
-            const operationSelect = document.getElementById('operationSelect');
-            const tooltip = document.getElementById('tooltip');
-            const body = document.body;
             
-            // Audio context for sound effects
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            const playSound = (frequency, duration) => {
-                if (!soundEnabled) return;
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                oscillator.frequency.value = frequency;
-                oscillator.type = 'sine';
-                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + duration);
-            };
-
             // Switch state management
-            const setSwitchState = (switchEl, state, addToHistory = true) => {
-                const oldState = switchEl.dataset.state;
-                if (oldState === state) return;
+            const setSwitchState = (switchEl, state) => {
+                switchEl.dataset.state = state;
+                switchEl.classList.remove('open', 'closed', 'earthed');
+                switchEl.classList.add(state);
                 
-                if (addToHistory) {
-                    addHistory({ switchId: switchEl.id, oldState, newState: state });
+                // Apply interlocking rules
+                if (electricalSettings.interlockingRules.rule1) {
+                    validateInterlocking(switchEl);
                 }
                 
-                switchEl.dataset.state = state;
-                switchEl.classList.remove('open', 'closed', 'earthed', 'animating');
-                switchEl.classList.add(state, 'animating');
-                
-                // Play different sounds for different states
-                if (state === 'closed') playSound(440, 0.1);
-                else if (state === 'open') playSound(330, 0.1);
-                else if (state === 'earthed') playSound(220, 0.2);
-                
-                setTimeout(() => switchEl.classList.remove('animating'), 500);
-                updatePowerFlow();
-                stats.clicks++;
-                updateStats();
+                updateSystemStatus();
             };
-
+            
             const toggleSwitchState = (switchEl) => {
                 const currentState = switchEl.dataset.state;
                 let nextState;
@@ -610,340 +1186,215 @@
                 else nextState = 'open';
                 setSwitchState(switchEl, nextState);
             };
-
-            // History management
-            const addHistory = (action) => {
-                history = history.slice(0, historyIndex + 1);
-                history.push(action);
-                historyIndex++;
-                updateHistoryButtons();
-            };
-
-            const undo = () => {
-                if (historyIndex < 0) return;
-                const action = history[historyIndex];
-                const switchEl = document.getElementById(action.switchId);
-                setSwitchState(switchEl, action.oldState, false);
-                historyIndex--;
-                updateHistoryButtons();
-            };
-
-            const redo = () => {
-                if (historyIndex >= history.length - 1) return;
-                historyIndex++;
-                const action = history[historyIndex];
-                const switchEl = document.getElementById(action.switchId);
-                setSwitchState(switchEl, action.newState, false);
-                updateHistoryButtons();
-            };
-
-            const updateHistoryButtons = () => {
-                document.getElementById('undoBtn').disabled = historyIndex < 0;
-                document.getElementById('redoBtn').disabled = historyIndex >= history.length - 1;
-            };
-
-            // Power flow visualization
-            const updatePowerFlow = () => {
-                if (!powerFlowVisible) return;
+            
+            // Validate interlocking
+            function validateInterlocking(switchEl) {
+                const id = switchEl.id;
+                const state = switchEl.dataset.state;
                 
-                const flows = document.querySelectorAll('.power-flow');
-                const busbars = document.querySelectorAll('.busbar');
-                const lines = document.querySelectorAll('.line');
-                
-                // Simple logic to show power flow based on switch states
-                const q0Closed = document.getElementById('Q0').dataset.state === 'closed';
-                const q1Closed = document.getElementById('Q1').dataset.state === 'closed';
-                const q8Closed = document.getElementById('Q8').dataset.state === 'closed';
-                
-                flows.forEach(flow => {
-                    flow.classList.toggle('active', q0Closed && (q1Closed || q8Closed));
-                });
-                
-                busbars.forEach(busbar => {
-                    busbar.classList.toggle('energized', q0Closed && q1Closed);
-                });
-                
-                lines.forEach(line => {
-                    line.classList.toggle('energized', q0Closed);
-                });
-            };
-
-            // Tutorial mode
-            const startTutorial = (sequence) => {
-                currentTutorial = tutorialSequences[sequence] || tutorialSequences.basic_switching;
-                tutorialStep = 0;
-                resetAllSwitches();
-                showTutorialStep();
-                document.getElementById('startTutorial').classList.add('hidden');
-                document.getElementById('nextStep').classList.remove('hidden');
-                document.getElementById('tutorialInstructions').classList.remove('hidden');
-            };
-
-            const showTutorialStep = () => {
-                if (tutorialStep >= currentTutorial.length) {
-                    showStatus('Tutorial completed! Well done!', 'success');
-                    document.getElementById('nextStep').classList.add('hidden');
-                    document.getElementById('startTutorial').classList.remove('hidden');
-                    clearTutorialHighlights();
-                    return;
-                }
-                
-                clearTutorialHighlights();
-                const step = currentTutorial[tutorialStep];
-                const switchEl = document.getElementById(step.switch);
-                switchEl.classList.add('tutorial-highlight');
-                
-                document.getElementById('tutorialInstructions').querySelector('p').textContent = step.instruction;
-                document.getElementById('currentStep').textContent = tutorialStep + 1;
-                document.getElementById('totalSteps').textContent = currentTutorial.length;
-                document.getElementById('tutorialProgress').style.width = `${((tutorialStep + 1) / currentTutorial.length) * 100}%`;
-            };
-
-            const nextTutorialStep = () => {
-                const step = currentTutorial[tutorialStep];
-                const switchEl = document.getElementById(step.switch);
-                setSwitchState(switchEl, step.action);
-                tutorialStep++;
-                showTutorialStep();
-            };
-
-            const clearTutorialHighlights = () => {
-                switches.forEach(sw => sw.classList.remove('tutorial-highlight'));
-            };
-
-            // Quiz mode
-            const startQuiz = () => {
-                resetAllSwitches();
-                const scenarios = Object.keys(interlockData);
-                const randomScenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-                const config = interlockData[randomScenario];
-                
-                document.getElementById('quizChallenge').classList.remove('hidden');
-                document.getElementById('quizChallenge').querySelector('p:last-child').textContent = 
-                    `Configure the switches for: ${config.description}`;
-                document.getElementById('submitQuiz').classList.remove('hidden');
-                document.getElementById('startQuiz').textContent = 'New Challenge';
-                
-                // Store the target configuration for checking
-                document.getElementById('quizChallenge').dataset.scenario = randomScenario;
-            };
-
-            const checkQuizAnswer = () => {
-                const scenario = document.getElementById('quizChallenge').dataset.scenario;
-                const requiredStates = interlockData[scenario];
-                let correct = true;
-                
-                switches.forEach(sw => {
-                    const switchId = sw.id;
-                    if (requiredStates[switchId] && sw.dataset.state !== requiredStates[switchId]) {
-                        correct = false;
+                // Example rule: Cannot close Q0 if Q1 and Q2 are both open
+                if (id === 'Q0' && state === 'closed') {
+                    const q1 = document.getElementById('Q1').dataset.state;
+                    const q2 = document.getElementById('Q2').dataset.state;
+                    
+                    if (q1 === 'open' && q2 === 'open' && electricalSettings.interlockingRules.rule1) {
+                        setSwitchState(switchEl, 'open');
+                        showStatus('Interlock violation! Cannot close CB without isolator', 'error');
+                        return false;
                     }
+                }
+                
+                return true;
+            }
+            
+            // Update system status
+            function updateSystemStatus() {
+                const q0 = document.getElementById('Q0').dataset.state;
+                const q1 = document.getElementById('Q1').dataset.state;
+                
+                let status = 'NORMAL';
+                let load = 0;
+                
+                if (q0 === 'closed' && q1 === 'closed') {
+                    status = 'ENERGIZED';
+                    load = Math.floor(Math.random() * 50 + 30);
+                } else if (q0 === 'open') {
+                    status = 'ISOLATED';
+                }
+                
+                document.getElementById('statusDisplay').textContent = status;
+                document.getElementById('loadDisplay').textContent = load;
+                
+                // Update busbar energization
+                const busbars = document.querySelectorAll('.busbar');
+                busbars.forEach(busbar => {
+                    busbar.classList.toggle('energized', status === 'ENERGIZED');
                 });
+            }
+            
+            // Add click handlers to switches
+            switches.forEach(sw => {
+                sw.addEventListener('click', () => toggleSwitchState(sw));
+            });
+            
+            // Tab switching
+            document.getElementById('practiceTab').addEventListener('click', () => switchTab('practice'));
+            document.getElementById('scenarioTab').addEventListener('click', () => switchTab('scenario'));
+            document.getElementById('testTab').addEventListener('click', () => switchTab('test'));
+            
+            // Control buttons
+            document.getElementById('checkConfig').addEventListener('click', checkConfiguration);
+            document.getElementById('showSolution').addEventListener('click', showSolution);
+            document.getElementById('reset').addEventListener('click', resetAll);
+            
+            // Initialize with reset state
+            resetAll();
+        }
+        
+        // Tab switching
+        function switchTab(tab) {
+            const tabs = ['practice', 'scenario', 'test'];
+            tabs.forEach(t => {
+                const tabBtn = document.getElementById(`${t}Tab`);
+                const controls = document.getElementById(`${t}Controls`);
                 
-                if (correct) {
-                    stats.quizScore += 10;
-                    stats.quizStreak++;
-                    showStatus(`Correct! +10 points. Streak: ${stats.quizStreak}`, 'success');
-                    playSound(880, 0.3);
-                } else {
-                    stats.quizStreak = 0;
-                    showStatus('Incorrect. Try again or start a new challenge.', 'error');
-                    playSound(220, 0.3);
+                tabBtn.classList.toggle('tab-active', t === tab);
+                controls.classList.toggle('hidden', t !== tab);
+            });
+        }
+        
+        // Check configuration
+        function checkConfiguration() {
+            const scenario = document.getElementById('operationSelect').value;
+            if (scenario === 'none') {
+                showStatus('Please select a scenario first', 'warning');
+                return;
+            }
+            
+            const required = interlockData[scenario];
+            const switches = document.querySelectorAll('.switch');
+            let errors = [];
+            
+            switches.forEach(sw => {
+                if (required[sw.id] && sw.dataset.state !== required[sw.id]) {
+                    errors.push(`${sw.id}: is ${sw.dataset.state}, should be ${required[sw.id]}`);
                 }
+            });
+            
+            sessionData.operations++;
+            
+            if (errors.length === 0) {
+                sessionData.successful++;
+                sessionData.score += 100;
+                userProfile.stats.operations++;
+                userProfile.stats.successful++;
+                userProfile.stats.scenariosCompleted++;
                 
-                document.getElementById('quizScore').textContent = stats.quizScore;
-                document.getElementById('quizStreak').textContent = stats.quizStreak;
-            };
-
-            // UI Functions
-            const resetAllSwitches = () => {
-                switches.forEach(sw => setSwitchState(sw, 'open', false));
-                statusDiv.innerHTML = '';
-                statusDiv.className = 'mt-6 p-4 rounded-lg transition-all duration-300';
-                operationSelect.value = 'none';
-                history = [];
-                historyIndex = -1;
-                updateHistoryButtons();
-                clearTutorialHighlights();
-            };
-
-            const showStatus = (message, type) => {
-                statusDiv.innerHTML = message;
-                let baseClasses = 'mt-6 p-4 rounded-lg transition-all duration-300';
-                if (type === 'success') {
-                    statusDiv.className = `${baseClasses} bg-green-100 text-green-800`;
-                } else if (type === 'error') {
-                    statusDiv.className = `${baseClasses} bg-red-100 text-red-800`;
-                } else if (type === 'warning') {
-                    statusDiv.className = `${baseClasses} bg-amber-100 text-amber-800`;
-                } else {
-                    statusDiv.className = `${baseClasses} bg-blue-100 text-blue-800`;
+                showStatus('✅ Perfect! Configuration is correct and safe.', 'success');
+                
+                // Check for achievements
+                checkAchievements();
+            } else {
+                showStatus(`❌ Configuration errors: ${errors.join(', ')}`, 'error');
+            }
+            
+            updateSessionStats();
+            saveUserProfile();
+        }
+        
+        // Show solution
+        function showSolution() {
+            const scenario = document.getElementById('operationSelect').value;
+            if (scenario === 'none') {
+                showStatus('Please select a scenario first', 'warning');
+                return;
+            }
+            
+            const required = interlockData[scenario];
+            const switches = document.querySelectorAll('.switch');
+            
+            switches.forEach(sw => {
+                if (required[sw.id]) {
+                    sw.dataset.state = required[sw.id];
+                    sw.classList.remove('open', 'closed', 'earthed');
+                    sw.classList.add(required[sw.id]);
                 }
-            };
-
-            const updateStats = () => {
-                const elapsed = Math.floor((Date.now() - stats.startTime) / 1000);
+            });
+            
+            showStatus('Solution applied - Study the configuration', 'info');
+        }
+        
+        // Reset all switches
+        function resetAll() {
+            const switches = document.querySelectorAll('.switch');
+            switches.forEach(sw => {
+                sw.dataset.state = 'open';
+                sw.classList.remove('closed', 'earthed');
+                sw.classList.add('open');
+            });
+            document.getElementById('operationSelect').value = 'none';
+            showStatus('All switches reset to open position', 'info');
+        }
+        
+        // Check achievements
+        function checkAchievements() {
+            const achievements = [];
+            
+            if (userProfile.stats.operations >= 10 && !userProfile.achievements.includes('first10')) {
+                userProfile.achievements.push('first10');
+                achievements.push('🎯 First 10 Operations!');
+            }
+            
+            if (userProfile.stats.successful >= 50 && !userProfile.achievements.includes('expert')) {
+                userProfile.achievements.push('expert');
+                achievements.push('🏆 Expert Operator!');
+            }
+            
+            if (achievements.length > 0) {
+                showStatus(`New achievements unlocked: ${achievements.join(', ')}`, 'success');
+            }
+        }
+        
+        // Update session statistics
+        function updateSessionStats() {
+            document.getElementById('operationCount').textContent = sessionData.operations;
+            const accuracy = sessionData.operations > 0 
+                ? Math.round((sessionData.successful / sessionData.operations) * 100) 
+                : 0;
+            document.getElementById('accuracyRate').textContent = accuracy + '%';
+            document.getElementById('sessionScore').textContent = sessionData.score;
+            
+            userProfile.stats.successRate = accuracy;
+        }
+        
+        // Session timer
+        function startSessionTimer() {
+            setInterval(() => {
+                const elapsed = Math.floor((Date.now() - sessionData.startTime) / 1000);
                 const minutes = Math.floor(elapsed / 60);
                 const seconds = elapsed % 60;
-                document.getElementById('sessionTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                document.getElementById('clickCount').textContent = stats.clicks;
-                document.getElementById('operationCount').textContent = stats.operations;
-                const successRate = stats.operations > 0 ? Math.round((stats.successful / stats.operations) * 100) : 0;
-                document.getElementById('successRate').textContent = `${successRate}%`;
-            };
-
-            // Mode switching
-            const switchMode = (mode) => {
-                currentMode = mode;
-                document.getElementById('practiceControls').classList.toggle('hidden', mode !== 'practice');
-                document.getElementById('tutorialControls').classList.toggle('hidden', mode !== 'tutorial');
-                document.getElementById('quizControls').classList.toggle('hidden', mode !== 'quiz');
+                document.getElementById('sessionTime').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 
-                // Update tab styles
-                const tabs = ['practice', 'tutorial', 'quiz'];
-                tabs.forEach(tab => {
-                    const tabBtn = document.getElementById(`${tab}Tab`);
-                    if (tab === mode) {
-                        tabBtn.classList.add('bg-indigo-600', 'text-white');
-                        tabBtn.classList.remove('bg-gray-200', 'text-gray-700');
-                    } else {
-                        tabBtn.classList.remove('bg-indigo-600', 'text-white');
-                        tabBtn.classList.add('bg-gray-200', 'text-gray-700');
-                    }
-                });
-                
-                resetAllSwitches();
-            };
-
-            // Event Listeners
-            switches.forEach(sw => {
-                sw.addEventListener('click', () => {
-                    if (currentMode === 'tutorial' && sw.classList.contains('tutorial-highlight')) {
-                        nextTutorialStep();
-                    } else if (currentMode !== 'tutorial') {
-                        toggleSwitchState(sw);
-                    }
-                });
-                
-                // Tooltips
-                sw.addEventListener('mouseenter', (e) => {
-                    const tooltipText = sw.dataset.tooltip;
-                    if (tooltipText) {
-                        tooltip.textContent = tooltipText;
-                        tooltip.classList.add('show');
-                        const rect = sw.getBoundingClientRect();
-                        tooltip.style.left = `${rect.left + rect.width / 2}px`;
-                        tooltip.style.top = `${rect.top - 40}px`;
-                    }
-                });
-                
-                sw.addEventListener('mouseleave', () => {
-                    tooltip.classList.remove('show');
-                });
-            });
-
-            // Control buttons
-            document.getElementById('applyScenario').addEventListener('click', () => {
-                const selectedOp = operationSelect.value;
-                if (selectedOp === 'none') {
-                    showStatus('Please select an operation scenario first.', 'warning');
-                    return;
+                // Update total hours
+                if (currentUser) {
+                    userProfile.stats.totalHours = 
+                        (userProfile.stats.totalHours || 0) + (1/60); // Add 1 second
                 }
-                const requiredStates = interlockData[selectedOp];
-                switches.forEach(sw => {
-                    const switchId = sw.id;
-                    if (requiredStates[switchId]) {
-                        setSwitchState(sw, requiredStates[switchId]);
-                    }
-                });
-                showStatus(`Showing correct configuration: ${requiredStates.description}`, 'info');
-                stats.operations++;
-                updateStats();
-            });
-
-            document.getElementById('checkConfig').addEventListener('click', () => {
-                const selectedOp = operationSelect.value;
-                if (selectedOp === 'none') {
-                    showStatus('Please select an operation scenario first.', 'warning');
-                    return;
-                }
-
-                const requiredStates = interlockData[selectedOp];
-                let errors = [];
-
-                switches.forEach(sw => {
-                    const switchId = sw.id;
-                    const currentState = sw.dataset.state;
-                    const requiredState = requiredStates[switchId];
-                    if (requiredState && currentState !== requiredState) {
-                        errors.push(`<b>${switchId}</b> is <b>${currentState}</b> but should be <b>${requiredState}</b>`);
-                    }
-                });
-
-                stats.operations++;
-                if (errors.length === 0) {
-                    stats.successful++;
-                    showStatus('<strong>✓ Perfect!</strong> Configuration is correct and safe.', 'success');
-                    playSound(660, 0.2);
-                } else {
-                    const errorList = errors.map(e => `<li>${e}</li>`).join('');
-                    showStatus(`<strong>⚠ Unsafe Configuration!</strong><ul class="list-disc list-inside mt-2">${errorList}</ul>`, 'error');
-                }
-                updateStats();
-            });
-
-            document.getElementById('reset').addEventListener('click', resetAllSwitches);
-            document.getElementById('undoBtn').addEventListener('click', undo);
-            document.getElementById('redoBtn').addEventListener('click', redo);
-
-            // Mode tabs
-            document.getElementById('practiceTab').addEventListener('click', () => switchMode('practice'));
-            document.getElementById('tutorialTab').addEventListener('click', () => switchMode('tutorial'));
-            document.getElementById('quizTab').addEventListener('click', () => switchMode('quiz'));
-
-            // Tutorial controls
-            document.getElementById('startTutorial').addEventListener('click', () => startTutorial('basic_switching'));
-            document.getElementById('nextStep').addEventListener('click', nextTutorialStep);
-
-            // Quiz controls
-            document.getElementById('startQuiz').addEventListener('click', startQuiz);
-            document.getElementById('submitQuiz').addEventListener('click', checkQuizAnswer);
-
-            // Dark mode toggle
-            document.getElementById('darkModeToggle').addEventListener('click', () => {
-                darkMode = !darkMode;
-                body.classList.toggle('dark', darkMode);
-                document.getElementById('darkModeText').textContent = darkMode ? 'Light Mode' : 'Dark Mode';
-                document.getElementById('darkModeIcon').textContent = darkMode ? '☀️' : '🌙';
-            });
-
-            // Sound toggle
-            document.getElementById('soundToggle').addEventListener('click', () => {
-                soundEnabled = !soundEnabled;
-                document.getElementById('soundStatus').textContent = soundEnabled ? 'ON' : 'OFF';
-                document.getElementById('soundIcon').textContent = soundEnabled ? '🔊' : '🔇';
-            });
-
-            // Power flow toggle
-            document.getElementById('togglePowerFlow').addEventListener('click', () => {
-                powerFlowVisible = !powerFlowVisible;
-                document.getElementById('togglePowerFlow').textContent = powerFlowVisible ? 'Hide Power Flow' : 'Show Power Flow';
-                updatePowerFlow();
-            });
-
-            // Labels toggle
-            document.getElementById('toggleLabels').addEventListener('click', () => {
-                const labels = document.querySelectorAll('.label');
-                labels.forEach(label => {
-                    label.style.display = label.style.display === 'none' ? 'block' : 'none';
-                });
-            });
-
-            // Initialize
-            resetAllSwitches();
-            updateHistoryButtons();
-            setInterval(updateStats, 1000);
-        });
+            }, 1000);
+        }
+        
+        // Show status message
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'mt-6 p-4 rounded-lg ';
+            
+            if (type === 'success') statusDiv.className += 'bg-green-100 text-green-800';
+            else if (type === 'error') statusDiv.className += 'bg-red-100 text-red-800';
+            else if (type === 'warning') statusDiv.className += 'bg-yellow-100 text-yellow-800';
+            else statusDiv.className += 'bg-blue-100 text-blue-800';
+        }
     </script>
 </body>
 </html>
